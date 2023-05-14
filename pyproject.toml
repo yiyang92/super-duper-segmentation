@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "super_segmenter"
+version = "0.0.1"
+authors = [{name = "Nikolai Zakharov"}]
+
+[project.scripts]
+train_segmenter = "super_segmenter.scripts.train:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["super_segmenter"]

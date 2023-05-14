@@ -1,0 +1,17 @@
+/venv/
+/__pycache__/
+/.idea/
+/*.pb/
+/*.tsv
+/sbs.py
+/*.txt
+/*.csv
+/notebooks/*.pb
+/notebooks/temp_ckpt
+/notebooks/*.onnx
+/*.wav
+/*.gz
+/venv
+/checkpoints/
+/.DS_Store
+*.pth
