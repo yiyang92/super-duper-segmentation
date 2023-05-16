@@ -10,7 +10,6 @@ def is_mutable(object_: Any):
 
 
 class Params:
-
     def finalize(self):
         pass
 
@@ -24,40 +23,40 @@ class Params:
 
 def preprocess_class_attributes(cls: type):
     """
-        this function preprocesses all attributes with annotated types
-        and preprocesses them before passing class to dataclass decorator
-        it allows to write simpler annotations in params declaration
-        as it:
-         1) allows to write construction like
-            class A:
-                a: int
+    this function preprocesses all attributes with annotated types
+    and preprocesses them before passing class to dataclass decorator
+    it allows to write simpler annotations in params declaration
+    as it:
+     1) allows to write construction like
+        class A:
+            a: int
 
-            classs B:
-                c: int
-                d: A
+        classs B:
+            c: int
+            d: A
 
-                def __post_init__(self):
-                    d.a = 8
+            def __post_init__(self):
+                d.a = 8
 
-         2) allows not to write field decorator
+     2) allows not to write field decorator
 
-            usually you have to write things like
+        usually you have to write things like
 
-            @dataclass
-            classs A:
-                a: Set = field(default_factory=set)
-                b: Params = field(default_factory=Params)
+        @dataclass
+        classs A:
+            a: Set = field(default_factory=set)
+            b: Params = field(default_factory=Params)
 
-            with this decorator you can write with the same effect
-            class B:
-                a: Set
-                b: Params
+        with this decorator you can write with the same effect
+        class B:
+            a: Set
+            b: Params
 
-        3) allows to write optional params in a form like
-            class A:
-                a: Optional[int]
+    3) allows to write optional params in a form like
+        class A:
+            a: Optional[int]
 
-        4) replaces uninitialized field without Optional annotation with NotImplemented
+    4) replaces uninitialized field without Optional annotation with NotImplemented
 
     """
     cls_attrributes = vars(cls)
@@ -72,7 +71,10 @@ def preprocess_class_attributes(cls: type):
         elif attribute_name not in cls_attrributes:
             # Optional[int] == Union[None, int]
             # get_args(Union[None, int]) -> (class 'NoneType', int)
-            if type(None) in get_args(annotation) or get_origin(annotation) is None:
+            if (
+                type(None) in get_args(annotation)
+                or get_origin(annotation) is None
+            ):
                 attr = None
             else:
                 attr = NotImplemented
@@ -92,20 +94,20 @@ def params_decorator(cls: type):
 
 
 def camel_to_snake(name: str) -> str:
-    name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+    name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
 class Registry(Params):
     """
-        this class is used to register all available model params
+    this class is used to register all available model params
 
-        example of usage:
-            @Registry.register
-            class SegmenterUnet:
-                ...
+    example of usage:
+        @Registry.register
+        class SegmenterUnet:
+            ...
 
-            params = Registry.get_params("segmenter_unet")
+        params = Registry.get_params("segmenter_unet")
     """
 
     registered_params = dict()

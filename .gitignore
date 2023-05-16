@@ -15,3 +15,8 @@
 /checkpoints/
 /.DS_Store
 *.pth
+*.pyc
+*.ipynb_checkpoints
+*.txt
+*.egg-info
+__pycache__

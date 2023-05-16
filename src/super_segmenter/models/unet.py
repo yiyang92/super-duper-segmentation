@@ -12,13 +12,9 @@ class UNet(nn.Module):
         self.contracting_12 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.contracting_21 = self.conv_block(in_channels=64, out_channels=128)
         self.contracting_22 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_31 = self.conv_block(
-            in_channels=128, out_channels=256
-        )
+        self.contracting_31 = self.conv_block(in_channels=128, out_channels=256)
         self.contracting_32 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_41 = self.conv_block(
-            in_channels=256, out_channels=512
-        )
+        self.contracting_41 = self.conv_block(in_channels=256, out_channels=512)
         self.contracting_42 = nn.MaxPool2d(kernel_size=2, stride=2)
         # Expansion
         self.middle = self.conv_block(in_channels=512, out_channels=1024)
@@ -66,7 +62,7 @@ class UNet(nn.Module):
             padding=1,
         )
 
-    def conv_block(self, in_channels, out_channels):
+    def conv_block(self, in_channels: int, out_channels: int) -> nn.Sequential:
         block = nn.Sequential(
             nn.Conv2d(
                 in_channels=in_channels,
@@ -89,7 +85,7 @@ class UNet(nn.Module):
         )
         return block
 
-    def forward(self, X):
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         contracting_11_out = self.contracting_11(X)  # [-1, 64, 256, 256]
         contracting_12_out = self.contracting_12(
             contracting_11_out
