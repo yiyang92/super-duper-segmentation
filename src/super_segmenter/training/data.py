@@ -37,9 +37,9 @@ class PascalPartDataset(Dataset):
         transform = transforms.Compose(
             [
                 transforms.CenterCrop(self._img_size),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
+                # transforms.Normalize(
+                #     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                # ),
             ]
         )
         return transform(image)

@@ -9,17 +9,23 @@ from super_segmenter.utils.constants import Models
 
 @params_decorator
 class DataParams(Params):
-    data_dir: Path = Path("/home/lyy92/data/Pascal-part")
+    data_dir: Path
 
-    classes_path: Path = Path(data_dir, "classes.txt")
-    train_ids_path: Path = Path(data_dir, "train_id.txt")
-    val_ids_path: Path = Path(data_dir, "val_id.txt")
-    images_dir_path = Path(data_dir, "JPEGImages")
-    gt_masks_dir_path = Path(data_dir, "gt_masks")
+    classes_path: Path
+    train_ids_path: Path
+    val_ids_path: Path
+    images_dir_path: Path
+    gt_masks_dir_path: Path
     image_size: tuple = (256, 256)
 
     def finalize(self):
         assert self.data_dir.exists()
+        self.classes_path = Path(self.data_dir, "classes.txt")
+        self.train_ids_path = Path(self.data_dir, "train_id.txt")
+        self.val_ids_path = Path(self.data_dir, "val_id.txt")
+        self.images_dir_path = Path(self.data_dir, "JPEGImages")
+        self.gt_masks_dir_path = Path(self.data_dir, "gt_masks")
+
         assert self.classes_path.exists()
         assert self.train_ids_path.exists()
         assert self.val_ids_path.exists()
@@ -49,7 +55,7 @@ class TrainingParams(Params):
 
 @params_decorator
 class SegmenterParams(Params):
-    model_dir: Path = Path("/home/lyy92/data/models/unet")
+    model_dir: Path
     model: Models = Models.unet
 
     data_params: DataParams
@@ -66,4 +72,6 @@ class SegmenterParams(Params):
 
 @Registry.register
 class UNetBaseline(SegmenterParams):
-    pass
+    def overwrite_default_attributes(self):
+        self.model_dir = Path("/home/lyy92/data/models/unet")
+        self.data_params.data_dir = Path("/home/lyy92/data/Pascal-part")
