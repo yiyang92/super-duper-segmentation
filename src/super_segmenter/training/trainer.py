@@ -4,13 +4,21 @@ from pathlib import Path
 from tqdm import tqdm
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 
 from super_segmenter.utils.params import Registry
 from super_segmenter.params import TrainingParams, DataParams
-from super_segmenter.utils.constants import Models, TRAIN_CE_LOSS, VALID_CE_LOSS
+from super_segmenter.utils.constants import (
+    Models,
+    TRAIN_CE_LOSS,
+    VALID_CE_LOSS,
+    LOGS_DIR,
+    VALID_IMAGES,
+    VALID_MASKS,
+)
 from super_segmenter.models import UNet
 from super_segmenter.training.data import PascalPartDataset
+from super_segmenter.training.summary import SegmenterSummaryWriter
 
 
 class Trainer:
@@ -39,6 +47,9 @@ class Trainer:
         self._criterion = nn.CrossEntropyLoss()
         self._optimizer = self._init_optimizer()
         self._iteration: int = 0
+        self._summary_writer = SegmenterSummaryWriter(
+            Path(self._model_dir, LOGS_DIR)
+        )
 
     def _model_summary(self) -> str:
         out = []
@@ -106,10 +117,11 @@ class Trainer:
         summary[TRAIN_CE_LOSS] = loss.item()
         return summary
 
-    def validation(self) -> dict:
+    def validation(self) -> tuple[dict, dict]:
         self._log.info("\n################Validation################")
         self._model.eval()
         summary = {VALID_CE_LOSS: 0.0}
+        images_summary = {VALID_IMAGES: [], VALID_MASKS: []}
         with torch.no_grad():
             for X, Y in tqdm(
                 self._valid_dataloader,
@@ -120,18 +132,23 @@ class Trainer:
                 Y_pred = self._model(X)
                 loss = self._criterion(input=Y_pred, target=Y)
                 summary[VALID_CE_LOSS] += loss.item()
+                if (
+                    len(images_summary[VALID_IMAGES])
+                    < self._params.max_val_summary
+                ):
+                    images_summary[VALID_IMAGES].append(X.squeeze())
+                    images_summary[VALID_MASKS].append(torch.argmax(Y, dim=1))
 
+        # TODO: add mIOU metrics
         summary[VALID_CE_LOSS] = summary[VALID_CE_LOSS] / len(
             self._valid_dataloader
         )
-        return summary
+        return summary, images_summary
 
     def train(self) -> None:
         self._log.info(f"Model layers: \n {self._model_summary()}")
         self._log.info("\n################START TRAINING################")
         self._model.train()
-        # step_losses = []
-        epoch_losses = []
         for epoch in tqdm(range(self._params.epochs)):
             self._log.info(f"\n####### TRAIN EPOCH: {epoch} ################")
             epoch_loss = 0.0
@@ -140,24 +157,35 @@ class Trainer:
             ):
                 train_summary = self._train_step(X, Y)
                 epoch_loss += train_summary[TRAIN_CE_LOSS]
+                if self._iteration % self._params.summary_interval == 0:
+                    self._summary_writer.write_scalars(
+                        train_summary, global_step=self._iteration
+                    )
                 self._iteration += 1
-                # step_losses.append(batch_loss)
 
-            epoch_losses.append(epoch_loss / len(self._train_loader))
             summary = {
-                "epoch loss": epoch_losses[-1],
+                "epoch loss": epoch_loss / len(self._train_loader),
                 "iteration": self._iteration,
             }
             self._log.info(f"\n\t{summary}")
             if epoch % self._params.validation_interval == 0:
-                valid_summary = self.validation()
+                valid_summary, valid_images = self.validation()
                 self._log.info(f"\nValidation summary:\n\t{valid_summary}")
+                self._summary_writer.write_scalars(
+                    valid_summary, global_step=self._iteration
+                )
+                self._summary_writer.write_images(
+                    valid_images, global_step=self._iteration
+                )
 
             if epoch % self._params.checkpoint_interval == 0:
                 self._save_model()
 
-        # TODO: every epoch make a validation, count mean IOU
         self._log.info("\n##### TRAINING COMPLETED #####")
-        valid_summary = self.validation()
+        valid_summary, valid_images = self.validation()
+        self._summary_writer.write_scalars(
+            valid_summary, global_step=self._iteration)
+        self._summary_writer.write_images(
+            valid_images, global_step=self._iteration)
         self._log.info(f"\nValidation summary:\n\t{valid_summary}")
         self._save_model()

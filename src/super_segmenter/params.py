@@ -43,6 +43,7 @@ class TrainingParams(Params):
     batch_size: int = 8
     num_workers: int = cpu_count()
     epochs: int = 50
+    max_val_summary: int = 10  # Number of samples for tb logging
 
     optimizer = optim.Adam
     learning_rate = 0.001
@@ -51,6 +52,9 @@ class TrainingParams(Params):
     # Per epochs
     validation_interval: int = 10
     checkpoint_interval: int = 10
+
+    # Per iteration
+    summary_interval: int = 250
 
 
 @params_decorator
