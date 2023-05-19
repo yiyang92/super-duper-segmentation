@@ -55,6 +55,7 @@ class TrainingParams(Params):
 
     # Per iteration
     summary_interval: int = 250
+    logs_dir: Path
 
 
 @params_decorator
@@ -77,5 +78,8 @@ class SegmenterParams(Params):
 @Registry.register
 class UNetBaseline(SegmenterParams):
     def overwrite_default_attributes(self):
-        self.model_dir = Path("/home/lyy92/data/models/unet")
-        self.data_params.data_dir = Path("/home/lyy92/data/Pascal-part")
+        self.model_dir = Path("/root/models-small/unet")
+        self.data_params.data_dir = Path("/root/data-small/Pascal-part")
+        self.training_params.logs_dir = Path("/root/tf-logs")
+
+        self.training_params.batch_size = 32

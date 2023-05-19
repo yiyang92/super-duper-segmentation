@@ -26,14 +26,18 @@ class SegmenterSummaryWriter:
                 subset = key.split("/")[0]
 
             if key.split("/")[1] == "masks":
-                masks = message[masks]
+                masks = message[key]
 
         outs = []
         if not images and not masks:
             return
 
         for image, mask in zip(images, masks):
-            outs.append(draw_segmentation_masks(image=image, masks=mask))
+            image = (image * 255).to(dtype=torch.uint8).cpu()
+            mask = (mask > 0.0).cpu()
+            segms = draw_segmentation_masks(
+                image=image, masks=mask).to(image.device)
+            outs.append(segms)
 
         grid = make_grid(outs)
         self.writer.add_image(

@@ -48,7 +48,7 @@ class Trainer:
         self._optimizer = self._init_optimizer()
         self._iteration: int = 0
         self._summary_writer = SegmenterSummaryWriter(
-            Path(self._model_dir, LOGS_DIR)
+            Path(self._params.logs_dir, LOGS_DIR)
         )
 
     def _model_summary(self) -> str:
@@ -137,7 +137,8 @@ class Trainer:
                     < self._params.max_val_summary
                 ):
                     images_summary[VALID_IMAGES].append(X.squeeze())
-                    images_summary[VALID_MASKS].append(torch.argmax(Y, dim=1))
+                    images_summary[VALID_MASKS].append(
+                        torch.argmax(Y_pred, dim=1).squeeze())
 
         # TODO: add mIOU metrics
         summary[VALID_CE_LOSS] = summary[VALID_CE_LOSS] / len(

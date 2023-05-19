@@ -14,4 +14,4 @@ VALID_CE_LOSS = "valid/CE_loss"
 VALID_IMAGES = "valid/images"
 VALID_MASKS = "valid/masks"
 
-LOGS_DIR = "logs"
+LOGS_DIR = "segmenter_logs"
