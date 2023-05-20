@@ -1,6 +1,6 @@
 import argparse
 
-from super_segmenter.utils.params import Registry
+from super_segmenter.params import Registry
 from super_segmenter.utils.helpers import set_logging_level
 from super_segmenter.training.trainer import Trainer
 

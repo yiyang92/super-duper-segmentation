@@ -2,7 +2,7 @@ import re
 from copy import deepcopy
 from typing import Any
 from typing import get_args, get_origin
-from dataclasses import dataclass, field, is_dataclass
+from dataclasses import dataclass, field
 
 
 def is_mutable(object_: Any):
@@ -96,35 +96,3 @@ def params_decorator(cls: type):
 def camel_to_snake(name: str) -> str:
     name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
-
-
-class Registry(Params):
-    """
-    this class is used to register all available model params
-
-    example of usage:
-        @Registry.register
-        class SegmenterUnet:
-            ...
-
-        params = Registry.get_params("segmenter_unet")
-    """
-
-    registered_params = dict()
-
-    @classmethod
-    def register(cls, params: type["Params"]):
-        assert issubclass(params, Params)
-        # without dataclass decorator class attributes will be unavailable
-        if not is_dataclass(params):
-            params = dataclass(params)
-        cls.registered_params[camel_to_snake(params.__name__)] = params
-        return params
-
-    @classmethod
-    def get_available_params_sets(cls) -> list[str]:
-        return list(cls.registered_params.keys())
-
-    @classmethod
-    def get_params(cls, params_name: str = "") -> Params:
-        return cls.registered_params[params_name]()

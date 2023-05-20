@@ -6,8 +6,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from super_segmenter.utils.params import Registry
-from super_segmenter.params import TrainingParams, DataParams
+from super_segmenter.params import Registry, TrainingParams, DataParams
 from super_segmenter.utils.constants import (
     Models,
     TRAIN_CE_LOSS,
@@ -138,7 +137,8 @@ class Trainer:
                 ):
                     images_summary[VALID_IMAGES].append(X.squeeze())
                     images_summary[VALID_MASKS].append(
-                        torch.argmax(Y_pred, dim=1).squeeze())
+                        torch.argmax(Y_pred, dim=1).squeeze()
+                    )
 
         # TODO: add mIOU metrics
         summary[VALID_CE_LOSS] = summary[VALID_CE_LOSS] / len(
@@ -185,8 +185,10 @@ class Trainer:
         self._log.info("\n##### TRAINING COMPLETED #####")
         valid_summary, valid_images = self.validation()
         self._summary_writer.write_scalars(
-            valid_summary, global_step=self._iteration)
+            valid_summary, global_step=self._iteration
+        )
         self._summary_writer.write_images(
-            valid_images, global_step=self._iteration)
+            valid_images, global_step=self._iteration
+        )
         self._log.info(f"\nValidation summary:\n\t{valid_summary}")
         self._save_model()

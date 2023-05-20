@@ -1,10 +1,47 @@
 from multiprocessing import cpu_count
+from dataclasses import dataclass, is_dataclass
 from pathlib import Path
 
 from torch import optim
 
-from super_segmenter.utils.params import Params, Registry, params_decorator
+from super_segmenter.utils.params import (
+    Params,
+    params_decorator,
+    camel_to_snake,
+)
 from super_segmenter.utils.constants import Models
+
+
+class Registry(Params):
+    """
+    this class is used to register all available model params
+
+    example of usage:
+        @Registry.register
+        class SegmenterUnet:
+            ...
+
+        params = Registry.get_params("segmenter_unet")
+    """
+
+    registered_params = dict()
+
+    @classmethod
+    def register(cls, params: type["Params"]):
+        assert issubclass(params, Params)
+        # without dataclass decorator class attributes will be unavailable
+        if not is_dataclass(params):
+            params = dataclass(params)
+        cls.registered_params[camel_to_snake(params.__name__)] = params
+        return params
+
+    @classmethod
+    def get_available_params_sets(cls) -> list[str]:
+        return list(cls.registered_params.keys())
+
+    @classmethod
+    def get_params(cls, params_name: str = "") -> Params:
+        return cls.registered_params[params_name]()
 
 
 @params_decorator
@@ -54,7 +91,7 @@ class TrainingParams(Params):
     checkpoint_interval: int = 10
 
     # Per iteration
-    summary_interval: int = 250
+    summary_interval: int = 50
     logs_dir: Path
 
 

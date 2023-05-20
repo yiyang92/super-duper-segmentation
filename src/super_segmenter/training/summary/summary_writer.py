@@ -35,8 +35,9 @@ class SegmenterSummaryWriter:
         for image, mask in zip(images, masks):
             image = (image * 255).to(dtype=torch.uint8).cpu()
             mask = (mask > 0.0).cpu()
-            segms = draw_segmentation_masks(
-                image=image, masks=mask).to(image.device)
+            segms = draw_segmentation_masks(image=image, masks=mask).to(
+                image.device
+            )
             outs.append(segms)
 
         grid = make_grid(outs)
