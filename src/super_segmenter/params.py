@@ -73,6 +73,11 @@ class DataParams(Params):
 @params_decorator
 class UnetModelParams(Params):
     num_classes: int = 7
+    img_channels: int = 3
+    # 4-times downsample, 4-times upsample
+    encoder_channels: list = [64, 128, 256, 512]
+    middle_channels: int = 1024
+    decoder_channels: list = [512, 256, 128, 64]
 
 
 @params_decorator
@@ -83,7 +88,7 @@ class TrainingParams(Params):
     max_val_summary: int = 10  # Number of samples for tb logging
 
     optimizer = optim.Adam
-    learning_rate = 0.001
+    learning_rate = 0.002
     betas = (0.9, 0.999)
 
     # Per epochs
@@ -120,3 +125,4 @@ class UNetBaseline(SegmenterParams):
         self.training_params.logs_dir = Path("/root/tf-logs")
 
         self.training_params.batch_size = 32
+        self.training_params.epochs = 70

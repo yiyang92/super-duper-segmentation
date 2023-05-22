@@ -33,7 +33,7 @@ class Trainer:
 
         # TODO: init in one place for all models
         if params.model == Models.unet:
-            self._model = UNet(params.model_params.num_classes)
+            self._model = UNet(params.model_params)
         self._device = (
             torch.device("cuda:0")
             if torch.cuda.is_available()

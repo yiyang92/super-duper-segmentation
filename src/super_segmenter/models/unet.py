@@ -2,68 +2,13 @@ import torch
 from torch import nn
 
 from super_segmenter.utils.helpers import padding_same
+from super_segmenter.params import UnetModelParams
 
 
-class UNet(nn.Module):
-    def __init__(self, num_classes: int) -> None:
-        super(UNet, self).__init__()
-        # Contraction
-        self.contracting_11 = self.conv_block(in_channels=3, out_channels=64)
-        self.contracting_12 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_21 = self.conv_block(in_channels=64, out_channels=128)
-        self.contracting_22 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_31 = self.conv_block(in_channels=128, out_channels=256)
-        self.contracting_32 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.contracting_41 = self.conv_block(in_channels=256, out_channels=512)
-        self.contracting_42 = nn.MaxPool2d(kernel_size=2, stride=2)
-        # Expansion
-        self.middle = self.conv_block(in_channels=512, out_channels=1024)
-        self.expansive_11 = nn.ConvTranspose2d(
-            in_channels=1024,
-            out_channels=512,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.expansive_12 = self.conv_block(in_channels=1024, out_channels=512)
-        self.expansive_21 = nn.ConvTranspose2d(
-            in_channels=512,
-            out_channels=256,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.expansive_22 = self.conv_block(in_channels=512, out_channels=256)
-        self.expansive_31 = nn.ConvTranspose2d(
-            in_channels=256,
-            out_channels=128,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.expansive_32 = self.conv_block(in_channels=256, out_channels=128)
-        self.expansive_41 = nn.ConvTranspose2d(
-            in_channels=128,
-            out_channels=64,
-            kernel_size=3,
-            stride=2,
-            padding=1,
-            output_padding=1,
-        )
-        self.expansive_42 = self.conv_block(in_channels=128, out_channels=64)
-        self.output = nn.Conv2d(
-            in_channels=64,
-            out_channels=num_classes,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-        )
-
-    def conv_block(self, in_channels: int, out_channels: int) -> nn.Sequential:
-        block = nn.Sequential(
+class UNetConvblock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__()
+        self._block = nn.Sequential(
             nn.Conv2d(
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -83,55 +28,108 @@ class UNet(nn.Module):
             nn.ReLU(),
             nn.BatchNorm2d(num_features=out_channels),
         )
-        return block
 
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        contracting_11_out = self.contracting_11(X)  # [-1, 64, 256, 256]
-        contracting_12_out = self.contracting_12(
-            contracting_11_out
-        )  # [-1, 64, 128, 128]
-        contracting_21_out = self.contracting_21(
-            contracting_12_out
-        )  # [-1, 128, 128, 128]
-        contracting_22_out = self.contracting_22(
-            contracting_21_out
-        )  # [-1, 128, 64, 64]
-        contracting_31_out = self.contracting_31(
-            contracting_22_out
-        )  # [-1, 256, 64, 64]
-        contracting_32_out = self.contracting_32(
-            contracting_31_out
-        )  # [-1, 256, 32, 32]
-        contracting_41_out = self.contracting_41(
-            contracting_32_out
-        )  # [-1, 512, 32, 32]
-        contracting_42_out = self.contracting_42(
-            contracting_41_out
-        )  # [-1, 512, 16, 16]
-        middle_out = self.middle(contracting_42_out)  # [-1, 1024, 16, 16]
-        expansive_11_out = self.expansive_11(middle_out)  # [-1, 512, 32, 32]
-        expansive_12_out = self.expansive_12(
-            torch.cat((expansive_11_out, contracting_41_out), dim=1)
-        )  # [-1, 1024, 32, 32] -> [-1, 512, 32, 32]
-        expansive_21_out = self.expansive_21(
-            expansive_12_out
-        )  # [-1, 256, 64, 64]
-        expansive_22_out = self.expansive_22(
-            torch.cat((expansive_21_out, contracting_31_out), dim=1)
-        )  # [-1, 512, 64, 64] -> [-1, 256, 64, 64]
-        expansive_31_out = self.expansive_31(
-            expansive_22_out
-        )  # [-1, 128, 128, 128]
-        expansive_32_out = self.expansive_32(
-            torch.cat((expansive_31_out, contracting_21_out), dim=1)
-        )  # [-1, 256, 128, 128] -> [-1, 128, 128, 128]
-        expansive_41_out = self.expansive_41(
-            expansive_32_out
-        )  # [-1, 64, 256, 256]
-        expansive_42_out = self.expansive_42(
-            torch.cat((expansive_41_out, contracting_11_out), dim=1)
-        )  # [-1, 128, 256, 256] -> [-1, 64, 256, 256]
-        output_out = self.output(
-            expansive_42_out
-        )  # [-1, num_classes, 256, 256]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self._block(x)
+
+
+class UnetEncoder(nn.Module):
+    def __init__(self, in_channels: int, channels: list) -> None:
+        super().__init__()
+        self._layers = nn.ModuleList()
+        self._max_pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        for out_ch in channels:
+            self._layers.append(
+                UNetConvblock(in_channels=in_channels, out_channels=out_ch)
+            )
+            in_channels = out_ch
+
+    def forward(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
+        outs = []
+        for layer in self._layers:
+            x = layer(x)
+            outs.append(x)
+            x = self._max_pool(x)
+        return x, outs
+
+
+class UnetDecoder(nn.Module):
+    def __init__(self, in_channels: int, channels: list) -> None:
+        super().__init__()
+        self._strided_conv_layers = nn.ModuleList()
+        self._layers = nn.ModuleList()
+        in_ch = in_channels
+        for out_ch in channels:
+            self._strided_conv_layers.append(
+                nn.ConvTranspose2d(
+                    in_channels=in_ch,
+                    out_channels=out_ch,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    output_padding=1,
+                ),
+            )
+            in_ch = out_ch
+
+        in_ch = in_channels
+        for out_ch in channels:
+            self._layers.append(
+                UNetConvblock(in_channels=in_channels, out_channels=out_ch),
+            )
+            in_channels = out_ch
+
+    def forward(
+        self, x: torch.Tensor, encoder_outs: list[torch.Tensor]
+    ) -> torch.Tensor:
+        cur_encoder_idx = -1
+        # x: [b_s, middle_channels, H, W]
+        for strided_conv, conv in zip(self._strided_conv_layers, self._layers):
+            x = strided_conv(x)
+            x = torch.cat([x, encoder_outs[cur_encoder_idx]], dim=1)
+            x = conv(x)
+            cur_encoder_idx -= 1
+        # x: [b_s, encoder_ch_0, H, W]
+        return x
+
+
+class UNet(nn.Module):
+    def __init__(self, params: UnetModelParams) -> None:
+        super(UNet, self).__init__()
+        num_classes: int = params.num_classes
+        assert len(params.encoder_channels) == len(params.decoder_channels)
+        # Contraction
+        self._encoder = UnetEncoder(
+            in_channels=params.img_channels, channels=params.encoder_channels
+        )
+        # Middle
+        self._middle = UNetConvblock(
+            in_channels=params.encoder_channels[-1],
+            out_channels=params.middle_channels,
+        )
+        # Decoder
+        self._decoder = UnetDecoder(
+            in_channels=params.middle_channels,
+            channels=params.decoder_channels
+        )
+        # Output
+        self.output = nn.Conv2d(
+            in_channels=params.decoder_channels[-1],
+            out_channels=num_classes,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # [-1, #in_channels, 256, 256]
+        enc_out, encoder_outs = self._encoder(x)
+        # [-1, 512, 16, 16]
+        middle_out = self._middle(enc_out)
+        # [-1, 1024, 16, 16]
+        decoder_out = self._decoder(x=middle_out, encoder_outs=encoder_outs)
+        output_out = self.output(decoder_out)
+        # [-1, num_classes, 256, 256]
         return output_out
