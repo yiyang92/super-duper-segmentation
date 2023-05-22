@@ -1,0 +1,23 @@
+name: pytorch
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - huggingface
+dependencies:
+  - python=3.10
+  - pytorch==1.13.1=py3.10_cuda11.7_cudnn8.5.0_0
+  - torchvision=0.14.1
+  - torchaudio=0.13.1
+  - pytorch-cuda=11.7
+  - pip=23.0
+  - pip:
+    - tensorboard~=2.12
+    - tqdm~=4.65
+    - mypy~=1.1
+    - flake8~=6.0
+    - jupyterlab
+    - torch-summary
+    - pandas
+    - gitpython
+    - matplotlib
