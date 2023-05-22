@@ -33,13 +33,27 @@ class PascalPartDataset(Dataset):
         self._data = [ids_imgmask[id_] for id_ in ids]
         self._img_size = img_size
 
-    def _transform(self, image: torch.Tensor) -> torch.Tensor:
+    def _transform_image(self, image: torch.Tensor) -> torch.Tensor:
         transform = transforms.Compose(
             [
-                transforms.CenterCrop(self._img_size),
+                transforms.Resize(
+                    size=self._img_size,
+                    interpolation=transforms.InterpolationMode.BILINEAR,
+                )
             ]
         )
         return transform(image)
+
+    def _transform_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        transform = transforms.Compose(
+            [
+                transforms.Resize(
+                    size=self._img_size,
+                    interpolation=transforms.InterpolationMode.NEAREST,
+                )
+            ]
+        )
+        return transform(mask)
 
     def __len__(self) -> int:
         return len(self._data)
@@ -47,7 +61,8 @@ class PascalPartDataset(Dataset):
     def __getitem__(self, index) -> tuple[torch.Tensor, torch.Tensor]:
         img_path, mask_path = self._data[index]
         image = read_image(str(img_path)).to(torch.float32) / 255.0
-        image = self._transform(image)
-        labels = torch.tensor(np.load(mask_path))
-        labels = transforms.CenterCrop(self._img_size)(labels).long()
+        image = self._transform_image(image)
+        labels = torch.tensor(np.load(mask_path)).long()
+        labels = labels.unsqueeze(0)
+        labels = self._transform_mask(labels).squeeze()
         return image, labels

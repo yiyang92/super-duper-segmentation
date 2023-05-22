@@ -111,8 +111,7 @@ class UNet(nn.Module):
         )
         # Decoder
         self._decoder = UnetDecoder(
-            in_channels=params.middle_channels,
-            channels=params.decoder_channels
+            in_channels=params.middle_channels, channels=params.decoder_channels
         )
         # Output
         self.output = nn.Conv2d(

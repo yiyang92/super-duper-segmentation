@@ -6,7 +6,13 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from super_segmenter.params import Registry, TrainingParams, DataParams
+from super_segmenter.params import (
+    Registry,
+    TrainingParams,
+    DataParams,
+    SegmenterParams,
+    UnetModelParams,
+)
 from super_segmenter.utils.constants import (
     Models,
     TRAIN_CE_LOSS,
@@ -26,14 +32,16 @@ class Trainer:
         params_name: str,
     ) -> None:
         self._log = logging.getLogger("trainer")
-        params = Registry.get_params(params_name)
+        params: SegmenterParams = Registry.get_params(params_name)
+
         self._params: TrainingParams = params.training_params
         self._data_params: DataParams = params.data_params
+        self._model_params: UnetModelParams = params.model_params
         self._model_dir: Path = params.model_dir
 
         # TODO: init in one place for all models
         if params.model == Models.unet:
-            self._model = UNet(params.model_params)
+            self._model = UNet(self._model_params)
         self._device = (
             torch.device("cuda:0")
             if torch.cuda.is_available()
@@ -71,13 +79,13 @@ class Trainer:
             ids_path=self._data_params.train_ids_path,
             images_dir_path=self._data_params.images_dir_path,
             masks_dir_path=self._data_params.gt_masks_dir_path,
-            img_size=self._data_params.image_size,
+            img_size=self._model_params.image_size,
         )
         self._valid_dataset = PascalPartDataset(
             ids_path=self._data_params.val_ids_path,
             images_dir_path=self._data_params.images_dir_path,
             masks_dir_path=self._data_params.gt_masks_dir_path,
-            img_size=self._data_params.image_size,
+            img_size=self._model_params.image_size,
         )
         self._log.info(
             f"data was initialized\n train: "

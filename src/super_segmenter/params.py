@@ -53,7 +53,6 @@ class DataParams(Params):
     val_ids_path: Path
     images_dir_path: Path
     gt_masks_dir_path: Path
-    image_size: tuple = (256, 256)
 
     def finalize(self):
         assert self.data_dir.exists()
@@ -72,6 +71,7 @@ class DataParams(Params):
 
 @params_decorator
 class UnetModelParams(Params):
+    image_size: tuple = (256, 256)
     num_classes: int = 7
     img_channels: int = 3
     # 4-times downsample, 4-times upsample
@@ -88,7 +88,7 @@ class TrainingParams(Params):
     max_val_summary: int = 10  # Number of samples for tb logging
 
     optimizer = optim.Adam
-    learning_rate = 0.002
+    learning_rate = 0.0005
     betas = (0.9, 0.999)
 
     # Per epochs
@@ -125,4 +125,4 @@ class UNetBaseline(SegmenterParams):
         self.training_params.logs_dir = Path("/root/tf-logs")
 
         self.training_params.batch_size = 32
-        self.training_params.epochs = 70
+        self.training_params.epochs = 50
